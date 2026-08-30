@@ -11,6 +11,12 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+try:
+    import vault_config
+    DEFAULT_CC_TOKEN = vault_config.get_telegram_config().get("bot_token", "").strip()
+except Exception:
+    DEFAULT_CC_TOKEN = os.environ.get("CC_BOT_TOKEN", os.environ.get("TELEGRAM_BOT_TOKEN", "")).strip()
+
 NWL_FORBIDDEN_PREFIX = "8944836049"
 
 CF_RELAY_URL = os.environ.get("CF_RELAY_URL", "https://telegram-command-edge.hari-edge.workers.dev").strip()
@@ -18,11 +24,7 @@ CF_RELAY_SECRET = os.environ.get("CF_RELAY_SECRET", "HaRiSecret_2026_SecureRelay
 
 RAW_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 if not RAW_BOT_TOKEN:
-    try:
-        import vault_config
-        RAW_BOT_TOKEN = vault_config.get_telegram_config().get("bot_token", "").strip()
-    except Exception:
-        RAW_BOT_TOKEN = ""
+    RAW_BOT_TOKEN = DEFAULT_CC_TOKEN
 
 _clean_tok = RAW_BOT_TOKEN
 if _clean_tok.lower().startswith("bot"):
