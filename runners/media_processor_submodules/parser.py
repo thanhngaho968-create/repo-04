@@ -9,7 +9,12 @@ import os
 import re
 import shutil
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+try:
+    import vault_config
+except Exception:
+    vault_config = None
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +46,21 @@ def format_bytes(size: int) -> str:
     return f"{size:.1f} TB"
 
 
-def get_ytdlp_cmd() -> List[str]:
+def _get_vault_cookies_path() -> Optional[str]:
+    global vault_config
+    if vault_config and hasattr(vault_config, "get_cookies_path"):
+        try:
+            return vault_config.get_cookies_path()
+        except Exception:
+            return None
+    try:
+        import vault_config
+        return vault_config.get_cookies_path()
+    except Exception:
+        return None
+
+
+def get_ytdlp_cmd(for_download: bool = False) -> List[str]:
     """Constructs robust yt-dlp command line options with modern bypass and multi-threading."""
     ytdlp_bin = os.path.expanduser("~/.local/bin/yt-dlp")
     if not os.path.exists(ytdlp_bin):
@@ -51,16 +70,18 @@ def get_ytdlp_cmd() -> List[str]:
         ytdlp_bin,
         "--no-check-certificates",
         "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "--extractor-args", "youtube:player_client=android,web,mweb,ios,tv_embedded;player_skip=configs,webpage",
+        "--extractor-args", "youtube:player_client=android,ios,visionos,web",
         "--retries", "5",
         "--fragment-retries", "10",
         "--file-access-retries", "5",
         "--no-warnings"
     ]
-    if shutil.which("aria2c"):
+    if for_download and shutil.which("aria2c"):
         base.extend(["--downloader", "aria2c", "--downloader-args", "aria2c:-s 8 -x 8 -k 1M --max-connection-per-server=8"])
-    if os.path.exists("cookies.txt") and os.path.getsize("cookies.txt") > 0:
-        base.extend(["--cookies", "cookies.txt"])
+
+    cookies_path = _get_vault_cookies_path()
+    if cookies_path and os.path.exists(cookies_path) and os.path.getsize(cookies_path) > 0:
+        base.extend(["--cookies", str(cookies_path)])
     return base
 
 
