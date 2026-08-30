@@ -47,6 +47,8 @@ def format_bytes(size: int) -> str:
 
 
 def _get_vault_cookies_path() -> Optional[str]:
+    if os.path.exists("cookies.txt") and os.path.getsize("cookies.txt") > 0:
+        return "cookies.txt"
     global vault_config
     if vault_config and hasattr(vault_config, "get_cookies_path"):
         try:
