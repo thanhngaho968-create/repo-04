@@ -48,6 +48,7 @@ def handle_single_video(task: Dict[str, Any], temp_dir: str) -> bool:
     info, err = _get_media_info(url)
     if err:
         status_label = _classify_error(err)
+        logger.error(f"❌ Error extracting media info for {url}: {err} (label: {status_label})")
         if sheet_row:
             gsheet_helper.update_media_task_status(sheet_row, status=status_label, progress="Lỗi trích xuất thông tin")
         if chat_id and status_msg_id:
@@ -63,7 +64,7 @@ def handle_single_video(task: Dict[str, Any], temp_dir: str) -> bool:
         telegram_helper.edit_message(chat_id, status_msg_id, f"📥 <b>[Cloud Runner: {RUNNER_REPO}] Đang tải video & xuất MP3:</b>\n🎬 <b>Tiêu đề:</b> <code>{html.escape(title)}</code>\n📊 <b>Tiến độ:</b> <code>10% (Tải MP4 & MP3...)</code>")
 
     v_path, a_path = os.path.join(temp_dir, f"{title}.mp4"), os.path.join(temp_dir, f"{title}.mp3")
-    cmd_v = get_ytdlp_cmd() + [
+    cmd_v = get_ytdlp_cmd(for_download=True) + [
         "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best",
         "--merge-output-format", "mp4",
         "-o", v_path,
@@ -73,6 +74,7 @@ def handle_single_video(task: Dict[str, Any], temp_dir: str) -> bool:
 
     if not os.path.exists(v_path) or os.path.getsize(v_path) == 0:
         err_v = proc_v.stderr or "yt-dlp failed to download MP4"
+        logger.error(f"❌ yt-dlp MP4 download error: {err_v}")
         status_label = _classify_error(err_v)
         if sheet_row:
             gsheet_helper.update_media_task_status(sheet_row, status=status_label, progress=err_v[:50])
@@ -80,7 +82,7 @@ def handle_single_video(task: Dict[str, Any], temp_dir: str) -> bool:
             telegram_helper.edit_message(chat_id, status_msg_id, f"❌ <b>Lỗi tải MP4:</b> <code>{html.escape(err_v[:150])}</code>")
         return False
 
-    cmd_a = get_ytdlp_cmd() + ["-x", "--audio-format", "mp3", "--audio-quality", "0", "-o", a_path, url]
+    cmd_a = get_ytdlp_cmd(for_download=True) + ["-x", "--audio-format", "mp3", "--audio-quality", "0", "-o", a_path, url]
     subprocess.run(cmd_a, capture_output=True)
 
     if chat_id and status_msg_id:
