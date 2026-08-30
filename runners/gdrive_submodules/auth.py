@@ -9,10 +9,8 @@ import os
 import random
 import sys
 import time
-from typing import Optional
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import vault_config
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +63,13 @@ def get_drive_service():
 
     if not oauth_info:
         paths = ["user_oauth2.json", "/media/vpsg16gb/HaRiDisk/Telegram_Command_Center/user_oauth2.json"]
-        v_oauth = vault_config.get_google_user_oauth_path()
-        if v_oauth: paths.insert(0, v_oauth)
+        try:
+            import vault_config
+            v_oauth = vault_config.get_google_user_oauth_path()
+            if v_oauth:
+                paths.insert(0, v_oauth)
+        except Exception:
+            pass
         for path in paths:
             if os.path.exists(path):
                 try:
@@ -107,8 +110,13 @@ def get_drive_service():
 
     if not sa_info:
         paths = ["service_account.json", "/media/vpsg16gb/HaRiDisk/Telegram_Command_Center/service_account.json"]
-        v_sa = vault_config.get_google_service_account_path()
-        if v_sa: paths.insert(0, v_sa)
+        try:
+            import vault_config
+            v_sa = vault_config.get_google_service_account_path()
+            if v_sa:
+                paths.insert(0, v_sa)
+        except Exception:
+            pass
         for path in paths:
             if os.path.exists(path):
                 try:
