@@ -91,10 +91,11 @@ def get_media_info(url: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return None, "Error (Invalid URL Format)"
 
-    cmd = get_ytdlp_cmd() + ["--dump-json", "--flat-playlist", url]
+    cmd = get_ytdlp_cmd(for_download=False) + ["--dump-json", "--no-playlist", url]
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         err_msg = proc.stderr.strip() or "Unknown error fetching media info"
+        logger.warning(f"yt-dlp --dump-json failed (rc={proc.returncode}): {err_msg[:120]}")
         auth_err = check_for_auth_block(err_msg)
         if auth_err:
             return None, auth_err
@@ -110,4 +111,5 @@ def get_media_info(url: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         else:
             return {"entries": [json.loads(l) for l in lines]}, None
     except Exception as e:
+        logger.warning(f"Failed parsing dump-json: {e}")
         return None, str(e)
